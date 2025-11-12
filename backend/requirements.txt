@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+python-multipart
+boto3
+celery[redis]
+redis
+ezdxf
+pandas
+openpyxl
+xlsxwriter
+python-dotenv
+pydantic
+tenacity
