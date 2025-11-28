@@ -24,7 +24,11 @@ def run_pipeline(job_id: str, in_path: str, base_dir: str) -> dict:
     if converter == "oda":
         # ODAFileConverter <inDir> <outDir> <outVer> <outType> <recurse> <audit>
         oda_bin = os.getenv("CONVERTER_BIN", r"C:\Program Files\ODA\ODAFileConverter.exe")
+        # Fix path: remove any wrapping quotes
+        oda_bin = oda_bin.strip('"').strip("'")
         cmd = [oda_bin, in_dir, tmp_dir, os.getenv("DXF_VERSION","ACAD2018"), "DXF", "0", "1"]
+        print("Running command:", cmd)
+
         subprocess.check_call(cmd)
         # find first .dxf in tmp_dir (ODA preserves names)
         candidates = [os.path.join(tmp_dir, f) for f in os.listdir(tmp_dir) if f.lower().endswith(".dxf")]
