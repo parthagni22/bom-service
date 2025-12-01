@@ -1,0 +1,6 @@
+{
+  "job_id": "1565c86a-dea8-4229-b111-70d77dc3a737",
+  "status": "failed",
+  "error": "Object of type method is not JSON serializable",
+  "error_type": "TypeError"
+}

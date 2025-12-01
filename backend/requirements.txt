@@ -1,13 +1,19 @@
+# Existing dependencies
 fastapi
 uvicorn[standard]
 python-multipart
 boto3
 celery[redis]
 redis
-ezdxf
+ezdxf>=1.1.0              # ⬆️ Update to latest
 pandas
 openpyxl
 xlsxwriter
 python-dotenv
 pydantic
 tenacity
+
+# NEW: Additional dependencies
+shapely>=2.0.0            # For geometric calculations
+numpy>=1.24.0             # For numerical operations
+scipy>=1.10.0             # For advanced analysis
