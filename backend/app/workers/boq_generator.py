@@ -1,89 +1,50 @@
 """
-BOQ generation utilities.
-
-This module takes the rich `cad_data` structure produced by
-`ComprehensiveCADExtractor` and turns it into:
-
-- A normalized BOQ data dictionary (`BOQGenerator`)
-- A formatted Excel file (`ExcelBOQWriter`)
-
-It is intentionally conservative and generic so it can work with
-different drawings without needing project‑specific rules.
+BOQ generation utilities - FIXED VERSION
 """
 
 from __future__ import annotations
-
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any, Dict, List, Iterable, Optional
-
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font
-
+from openpyxl.cell.cell import MergedCell
 
 BOQItemDict = Dict[str, Any]
-
 
 @dataclass
 class BOQItem:
     """Represents a single BOQ line item."""
-
     sl_no: int
     description: str
     category: str
     quantity: float
     unit: str = "Nos"
     confidence: str = "medium"
-    source: Optional[str] = None  # e.g. BLOCK name / layer
+    source: Optional[str] = None
 
     def to_dict(self) -> BOQItemDict:
         return asdict(self)
 
 
 class BOQGenerator:
-    """
-    Lightweight BOQ generator that groups entities into countable items.
-
-    The implementation is deliberately simple and robust:
-    - Counts block INSERTs grouped by block name
-    - Uses basic keyword heuristics to assign categories
-    - Produces a structure compatible with the pipeline expectations:
-        {
-          "items": [ ... ],
-          "statistics": {
-             "total_items": int,
-             "categories": int,
-             "high_confidence": int
-          }
-        }
-    """
+    """Lightweight BOQ generator that groups entities into countable items."""
 
     def __init__(self, cad_data: Dict[str, Any]):
         self.cad_data = cad_data or {}
         self.entities = self.cad_data.get("entities") or {}
-        # Ensure entities is always a dict, not None
         if not isinstance(self.entities, dict):
             self.entities = {}
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
     def generate(self) -> Dict[str, Any]:
-        """
-        Build a BOQ dictionary from CAD data.
-
-        This will never raise on missing sections – at worst it will
-        return an empty BOQ with zeroed statistics so Celery can still run.
-        """
+        """Build a BOQ dictionary from CAD data."""
         items: List[BOQItem] = []
         sl_no = 1
 
-        # 1) Block inserts → count as discrete items
+        # Generate from block inserts
         for item in self._generate_from_inserts(start_sl_no=sl_no):
             items.append(item)
             sl_no += 1
-
-        # Future: extend with walls, rooms, hatches, etc.
 
         statistics = self._build_statistics(items)
 
@@ -92,11 +53,7 @@ class BOQGenerator:
             "statistics": statistics,
         }
 
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
     def _generate_from_inserts(self, start_sl_no: int = 1) -> Iterable[BOQItem]:
-        # Ensure entities is a dict
         if not isinstance(self.entities, dict):
             return []
         
@@ -107,10 +64,8 @@ class BOQGenerator:
         # Group by block name
         counts: Dict[str, int] = {}
         for ins in inserts:
-            # Skip None entries
             if ins is None:
                 continue
-            # Handle both dict and object-like access
             if isinstance(ins, dict):
                 name = (ins.get("block_name") or "").strip()
             else:
@@ -123,7 +78,7 @@ class BOQGenerator:
         sl_no = start_sl_no
         for block_name, qty in sorted(counts.items(), key=lambda kv: kv[0].lower()):
             category, confidence = self._infer_category(block_name)
-            description = block_name  # You can customize this later
+            description = block_name
             items.append(
                 BOQItem(
                     sl_no=sl_no,
@@ -139,11 +94,8 @@ class BOQGenerator:
 
         return items
 
-    def _infer_category(self, name: str) -> (str, str):
-        """
-        Very simple keyword‑based categorization based on block name.
-        Returns (category, confidence).
-        """
+    def _infer_category(self, name: str) -> tuple:
+        """Simple keyword-based categorization."""
         upper = name.upper()
 
         mapping = [
@@ -160,7 +112,6 @@ class BOQGenerator:
             if any(kw in upper for kw in keywords):
                 return category, "high"
 
-        # Fallback generic categories
         if "WALL" in upper:
             return "Walls", "medium"
         if "COLUMN" in upper or "COL" in upper:
@@ -180,12 +131,7 @@ class BOQGenerator:
 
 
 class ExcelBOQWriter:
-    """
-    Writes BOQ data to a formatted Excel workbook.
-
-    Expects data in the shape returned by `BOQGenerator.generate()`
-    plus a `project_info` dictionary with arbitrary metadata.
-    """
+    """Writes BOQ data to a formatted Excel workbook - FIXED VERSION"""
 
     def __init__(self, boq_data: Dict[str, Any], project_info: Dict[str, Any]):
         self.boq_data = boq_data or {}
@@ -194,11 +140,7 @@ class ExcelBOQWriter:
         self.project_info = project_info or {}
 
     def write(self, output_path: str | Path) -> str:
-        """
-        Create the Excel file at `output_path`.
-
-        Returns the absolute path to the created file.
-        """
+        """Create the Excel file at output_path."""
         output_path = str(Path(output_path).absolute())
 
         wb = Workbook()
@@ -216,9 +158,6 @@ class ExcelBOQWriter:
         wb.save(output_path)
         return output_path
 
-    # ------------------------------------------------------------------
-    # Sheet helpers
-    # ------------------------------------------------------------------
     def _write_header(self, ws):
         # Project info block
         title_font = Font(bold=True, size=14)
@@ -255,7 +194,7 @@ class ExcelBOQWriter:
     def _write_items(self, ws, start_row: int):
         row = start_row
         for item in self.items:
-            # We accept both BOQItem and dict representations
+            # Accept both BOQItem and dict representations
             if isinstance(item, BOQItem):
                 data = item.to_dict()
             else:
@@ -271,16 +210,30 @@ class ExcelBOQWriter:
             row += 1
 
     def _auto_size_columns(self, ws):
-        for column_cells in ws.columns:
-            length = 0
-            column_letter = column_cells[0].column_letter
-            for cell in column_cells:
-                try:
-                    value = str(cell.value) if cell.value is not None else ""
-                    length = max(length, len(value))
-                except Exception:
+        """Auto-size columns, FIXED to handle merged cells"""
+        for column in ws.columns:
+            max_length = 0
+            column_letter = None
+            
+            for cell in column:
+                # Skip merged cells - THIS IS THE FIX
+                if isinstance(cell, MergedCell):
                     continue
-            ws.column_dimensions[column_letter].width = min(max(length + 2, 10), 50)
+                
+                # Get column letter from first non-merged cell
+                if column_letter is None:
+                    column_letter = cell.column_letter
+                
+                try:
+                    if cell.value:
+                        max_length = max(max_length, len(str(cell.value)))
+                except:
+                    pass
+            
+            # Only adjust if we found a valid column
+            if column_letter:
+                adjusted_width = min(max(max_length + 2, 10), 50)
+                ws.column_dimensions[column_letter].width = adjusted_width
 
     def _write_summary_sheet(self, wb: Workbook):
         ws = wb.create_sheet(title="Summary")
@@ -301,5 +254,3 @@ class ExcelBOQWriter:
             ws[f"A{row}"].font = key_font
             ws[f"B{row}"] = value
             row += 1
-
-

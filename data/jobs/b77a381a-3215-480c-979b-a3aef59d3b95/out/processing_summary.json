@@ -1,0 +1,45 @@
+{
+  "job_id": "b77a381a-3215-480c-979b-a3aef59d3b95",
+  "status": "success",
+  "output_files": {
+    "boq_excel": "D:\\Irizpro\\bom-service\\backend\\..\\data\\jobs\\b77a381a-3215-480c-979b-a3aef59d3b95\\out\\BOQ_Output.xlsx",
+    "extracted_data_json": "D:\\Irizpro\\bom-service\\backend\\..\\data\\jobs\\b77a381a-3215-480c-979b-a3aef59d3b95\\out\\extracted_data.json",
+    "dxf_file": "D:\\Irizpro\\bom-service\\backend\\..\\data\\jobs\\b77a381a-3215-480c-979b-a3aef59d3b95\\tmp\\Furniture Layout_ Baner.dxf"
+  },
+  "statistics": {
+    "conversion": {
+      "input_file": "D:\\Irizpro\\bom-service\\backend\\..\\data\\jobs\\b77a381a-3215-480c-979b-a3aef59d3b95\\in\\Furniture Layout_ Baner.dwg",
+      "input_size": 454988,
+      "converter_used": "libredwg",
+      "conversion_time": 0.3474709987640381,
+      "warnings": [],
+      "output_file": "D:\\Irizpro\\bom-service\\backend\\..\\data\\jobs\\b77a381a-3215-480c-979b-a3aef59d3b95\\tmp\\Furniture Layout_ Baner.dxf",
+      "output_size": 1491096,
+      "is_valid": true,
+      "size_ratio": 3.2772204981230275,
+      "entity_count": 958,
+      "errors": []
+    },
+    "extraction": {
+      "total_entities": 958,
+      "layers": 15,
+      "blocks": 0,
+      "measurements": {
+        "block_count": 174,
+        "text_count": 35,
+        "dimension_count": 10
+      }
+    },
+    "boq": {
+      "total_items": 13,
+      "categories": 2,
+      "high_confidence": 1
+    }
+  },
+  "quality_metrics": {
+    "conversion_size_ratio": 3.2772204981230275,
+    "extraction_entity_count": 174,
+    "boq_high_confidence_items": 1,
+    "boq_total_items": 13
+  }
+}
