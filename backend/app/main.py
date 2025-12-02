@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware
 from celery import Celery
 from celery.result import AsyncResult
 import shutil
@@ -6,6 +7,16 @@ import os
 import uuid
 
 app = FastAPI(title="BOM Service API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 
 # Initialize Celery (will use Redis broker)
 celery_app = Celery(

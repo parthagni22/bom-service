@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOQ Generator - DWG to Excel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #4CAF50;
+            background: #e8f5e9;
+        }
+
+        .upload-icon {
+            font-size: 64px;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            color: #999;
+            font-size: 14px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-info {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .file-name {
+            font-weight: bold;
+            color: #1976d2;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn-upload {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-upload:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-upload:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            display: none;
+        }
+
+        .btn-download.show {
+            display: block;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+            text-align: center;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.processing {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+            display: none;
+        }
+
+        .spinner.show {
+            display: block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .progress-bar.show {
+            display: block;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .reset-btn {
+            background: #ff6b6b;
+            color: white;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .reset-btn.show {
+            display: block;
+        }
+
+        .reset-btn:hover {
+            background: #ff5252;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📐 BOQ Generator</h1>
+            <p>Upload your DWG file to generate Bill of Quantities in Excel</p>
+        </div>
+
+        <!-- Upload Area -->
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">Click to browse or drag & drop</div>
+            <div class="upload-hint">Supported format: .dwg files (max 100MB)</div>
+            <input type="file" id="fileInput" accept=".dwg">
+        </div>
+
+        <!-- File Info -->
+        <div class="file-info" id="fileInfo">
+            <div class="file-name" id="fileName"></div>
+            <div class="file-size" id="fileSize"></div>
+        </div>
+
+        <!-- Status -->
+        <div class="spinner" id="spinner"></div>
+        <div class="status" id="status"></div>
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats" id="stats" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-value" id="totalItems">0</div>
+                <div class="stat-label">Total Items</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="categories">0</div>
+                <div class="stat-label">Categories</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="blocks">0</div>
+                <div class="stat-label">Blocks</div>
+            </div>
+        </div>
+
+        <!-- Upload Button -->
+        <button class="btn btn-upload" id="uploadBtn" disabled>Upload & Process</button>
+
+        <!-- Download Button -->
+        <button class="btn btn-download" id="downloadBtn">📥 Download BOQ Excel</button>
+
+        <!-- Reset Button -->
+        <button class="btn reset-btn" id="resetBtn">🔄 Upload Another File</button>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000';
+        
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const status = document.getElementById('status');
+        const spinner = document.getElementById('spinner');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const stats = document.getElementById('stats');
+
+        let selectedFile = null;
+        let jobId = null;
+        let taskId = null;
+
+        // Click to upload
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // Drag & drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        // File selection
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.name.toLowerCase().endsWith('.dwg')) {
+                showStatus('Please select a .dwg file', 'error');
+                return;
+            }
+
+            if (file.size > 100 * 1024 * 1024) {
+                showStatus('File size exceeds 100MB limit', 'error');
+                return;
+            }
+
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileSize.textContent = `Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+            fileInfo.classList.add('show');
+            uploadBtn.disabled = false;
+            showStatus('File ready to upload', 'success');
+        }
+
+        // Upload button
+        uploadBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            uploadBtn.disabled = true;
+            downloadBtn.classList.remove('show');
+            stats.style.display = 'none';
+            
+            showStatus('Uploading file...', 'processing');
+            spinner.classList.add('show');
+            progressBar.classList.add('show');
+            progressFill.style.width = '20%';
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            try {
+                const response = await fetch(`${API_BASE}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    jobId = data.job_id;
+                    taskId = data.task_id;
+                    progressFill.style.width = '40%';
+                    showStatus('Processing DWG file...', 'processing');
+                    pollStatus();
+                } else {
+                    throw new Error(data.detail || 'Upload failed');
+                }
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+                spinner.classList.remove('show');
+                progressBar.classList.remove('show');
+                uploadBtn.disabled = false;
+            }
+        });
+
+        // Poll for status
+        async function pollStatus() {
+            if (!taskId) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/status/${taskId}`);
+                const data = await response.json();
+
+                console.log('Status:', data.state);
+
+                if (data.state === 'PENDING' || data.state === 'STARTED') {
+                    progressFill.style.width = '60%';
+                    setTimeout(pollStatus, 2000); // Poll every 2 seconds
+                } else if (data.state === 'SUCCESS') {
+                    progressFill.style.width = '100%';
+                    handleSuccess(data.result);
+                } else if (data.state === 'FAILURE') {
+                    throw new Error(data.error || 'Processing failed');
+                }
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+                spinner.classList.remove('show');
+                progressBar.classList.remove('show');
+                uploadBtn.disabled = false;
+            }
+        }
+
+        // Handle success
+        function handleSuccess(result) {
+            spinner.classList.remove('show');
+            progressBar.classList.remove('show');
+            showStatus('✅ BOQ generated successfully!', 'success');
+            downloadBtn.classList.add('show');
+            resetBtn.classList.add('show');
+
+            // Show statistics if available
+            if (result.statistics && result.statistics.boq) {
+                stats.style.display = 'grid';
+                document.getElementById('totalItems').textContent = 
+                    result.statistics.boq.total_items || 0;
+                document.getElementById('categories').textContent = 
+                    result.statistics.boq.categories || 0;
+                document.getElementById('blocks').textContent = 
+                    result.statistics.extraction.measurements.block_count || 0;
+            }
+        }
+
+        // Download button
+        downloadBtn.addEventListener('click', () => {
+            if (!jobId) return;
+            window.location.href = `${API_BASE}/download/${jobId}`;
+        });
+
+        // Reset button
+        resetBtn.addEventListener('click', () => {
+            selectedFile = null;
+            jobId = null;
+            taskId = null;
+            fileInput.value = '';
+            fileInfo.classList.remove('show');
+            downloadBtn.classList.remove('show');
+            resetBtn.classList.remove('show');
+            stats.style.display = 'none';
+            uploadBtn.disabled = true;
+            status.classList.remove('show');
+            progressBar.classList.remove('show');
+            progressFill.style.width = '0%';
+        });
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status show ${type}`;
+        }
+    </script>
+</body>
+</html>
